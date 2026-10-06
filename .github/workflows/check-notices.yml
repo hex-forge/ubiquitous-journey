@@ -1,4 +1,4 @@
-name: Check IIIT Trichy Notices
+name: notice
 
 on:
   schedule:
