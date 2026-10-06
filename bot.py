@@ -17,7 +17,7 @@ def get_notices():
     response = requests.get(
         NOTICES_URL,
         timeout=30,
-        headers={"User-Agent": "IIIT-Trichy-Notice-Bot/1.0"},
+        headers={"User-Agent": "hello_world"},
     )
     response.raise_for_status()
 
