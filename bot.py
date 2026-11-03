@@ -5,6 +5,9 @@ from pathlib import Path
 
 import requests
 
+from urllib.parse import quote, urlsplit, urlunsplit
+
+FILES_BASE = "https://store.iiitt.ac.in/downloads/"
 
 NOTICES_URL = "https://iiitt.ac.in/json/general/notices.json"
 SEEN_FILE = Path("seen_notices.json")
@@ -48,12 +51,19 @@ def save_seen(seen):
     )
 
 
+
 def make_url(link):
+    link = link.strip()
+
     if link.startswith("http"):
-        return link
+        # Absolute URL: just encode the path (spaces etc.), keep it otherwise intact
+        parts = urlsplit(link)
+        return urlunsplit(
+            (parts.scheme, parts.netloc, quote(parts.path, safe="/%"), parts.query, parts.fragment)
+        )
 
-    return "https://iiitt.ac.in/" + link.lstrip("/")
-
+    # Relative path: files are served from the store subdomain
+    return FILES_BASE + quote(link.lstrip("/"), safe="/%")
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
