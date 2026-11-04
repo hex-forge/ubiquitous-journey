@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 FILES_BASE = "https://store.iiitt.ac.in/downloads/"
 
-NOTICES_URL = "https://iiitt.ac.in/json/general/notices-x.json"
+NOTICES_URL = "https://iiitt.ac.in/json/general/notices.json"
 SEEN_FILE = Path("seen_notices.json")
 
 HEALTH_FILE = Path("health_state.json")
