@@ -7,10 +7,17 @@ import requests
 
 from urllib.parse import quote, urlsplit, urlunsplit
 
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
 FILES_BASE = "https://store.iiitt.ac.in/downloads/"
 
 NOTICES_URL = "https://iiitt.ac.in/json/general/notices.json"
 SEEN_FILE = Path("seen_notices.json")
+
+HEALTH_FILE = Path("health_state.json")
+DOWN_THRESHOLD = timedelta(hours=1)
+LOCAL_TZ = ZoneInfo("Asia/Kolkata")
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
@@ -79,10 +86,86 @@ def send_telegram(message):
     )
 
     response.raise_for_status()
+def load_health():
+    if HEALTH_FILE.exists():
+        try:
+            s = json.loads(HEALTH_FILE.read_text(encoding="utf-8"))
+            return {"down_since": s.get("down_since"), "alerted": bool(s.get("alerted", False))}
+        except ValueError:
+            pass
+    return {"down_since": None, "alerted": False}
+
+
+def save_health(state):
+    HEALTH_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+
+def fmt_local(dt):
+    return dt.astimezone(LOCAL_TZ).strftime("%d %b %Y, %I:%M %p IST")
+
+
+def fmt_duration(delta):
+    h, m = divmod(int(delta.total_seconds() // 60), 60)
+    return f"{h}h {m}m" if h else f"{m}m"
+
+
+def handle_failure(error):
+    now = datetime.now(timezone.utc)
+    state = load_health()
+
+    if not state["down_since"]:
+        save_health({"down_since": now.isoformat(), "alerted": False})
+        return
+
+    down_since = datetime.fromisoformat(state["down_since"])
+    down_for = now - down_since
+    if state["alerted"] or down_for < DOWN_THRESHOLD:
+        return
+
+    try:
+        send_telegram(
+            "🚨 IIIT NOTICES ENDPOINT DOWN\n\n"
+            f"🔗 {NOTICES_URL}\n"
+            f"⏱ Down for {fmt_duration(down_for)} (since {fmt_local(down_since)})\n"
+            f"❗ Last error: {str(error)[:200]}"
+        )
+    except Exception as exc:
+        print(f"Could not send down alert: {exc}")
+        return
+    state["alerted"] = True
+    save_health(state)
+
+
+def handle_recovery():
+    state = load_health()
+    if not state["down_since"]:
+        return
+
+    now = datetime.now(timezone.utc)
+    if state["alerted"]:
+        down_since = datetime.fromisoformat(state["down_since"])
+        try:
+            send_telegram(
+                "✅ IIIT NOTICES ENDPOINT BACK ONLINE\n\n"
+                f"🔗 {NOTICES_URL}\n"
+                f"⏱ Total downtime: {fmt_duration(now - down_since)}\n"
+                f"🕒 Recovered at {fmt_local(now)}"
+            )
+        except Exception as exc:
+            print(f"Could not send recovery alert: {exc}")
+            return
+    save_health({"down_since": None, "alerted": False})
 
 
 def main():
+    try:
     notices = get_notices()
+    except Exception as exc:
+        print(f"Endpoint check failed: {exc}")
+        handle_failure(exc)
+        return
+
+    handle_recovery()
     seen = load_seen()
 
     current_ids = set()
