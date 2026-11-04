@@ -87,13 +87,16 @@ def send_telegram(message):
 
     response.raise_for_status()
 def load_health():
+    state = {"down_since": None, "alerted": False, "history": []}
     if HEALTH_FILE.exists():
         try:
             s = json.loads(HEALTH_FILE.read_text(encoding="utf-8"))
-            return {"down_since": s.get("down_since"), "alerted": bool(s.get("alerted", False))}
+            state["down_since"] = s.get("down_since")
+            state["alerted"] = bool(s.get("alerted", False))
+            state["history"] = s.get("history", [])
         except ValueError:
             pass
-    return {"down_since": None, "alerted": False}
+    return state
 
 
 def save_health(state):
@@ -114,7 +117,8 @@ def handle_failure(error):
     state = load_health()
 
     if not state["down_since"]:
-        save_health({"down_since": now.isoformat(), "alerted": False})
+        state["down_since"] = now.isoformat()
+        save_health(state)
         return
 
     down_since = datetime.fromisoformat(state["down_since"])
@@ -142,8 +146,9 @@ def handle_recovery():
         return
 
     now = datetime.now(timezone.utc)
+    down_since = datetime.fromisoformat(state["down_since"])
+
     if state["alerted"]:
-        down_since = datetime.fromisoformat(state["down_since"])
         try:
             send_telegram(
                 "✅ IIIT NOTICES ENDPOINT BACK ONLINE\n\n"
@@ -154,8 +159,17 @@ def handle_recovery():
         except Exception as exc:
             print(f"Could not send recovery alert: {exc}")
             return
-    save_health({"down_since": None, "alerted": False})
 
+    state["history"].append({
+        "start": state["down_since"],
+        "end": now.isoformat(),
+        "minutes": int((now - down_since).total_seconds() // 60),
+        "alerted": state["alerted"],
+    })
+    state["history"] = state["history"][-100:]  # keep the last 100 outages
+    state["down_since"] = None
+    state["alerted"] = False
+    save_health(state)
 
 def main():
     try:
