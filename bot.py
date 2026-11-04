@@ -12,11 +12,11 @@ from zoneinfo import ZoneInfo
 
 FILES_BASE = "https://store.iiitt.ac.in/downloads/"
 
-NOTICES_URL = "https://iiitt.ac.in/json/general/notices.json"
+NOTICES_URL = "https://iiitt.ac.in/json/general/notices-x.json"
 SEEN_FILE = Path("seen_notices.json")
 
 HEALTH_FILE = Path("health_state.json")
-DOWN_THRESHOLD = timedelta(hours=1)
+DOWN_THRESHOLD = timedelta(minutes=1)
 LOCAL_TZ = ZoneInfo("Asia/Kolkata")
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
