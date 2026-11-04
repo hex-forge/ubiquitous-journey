@@ -16,7 +16,7 @@ NOTICES_URL = "https://iiitt.ac.in/json/general/notices.json"
 SEEN_FILE = Path("seen_notices.json")
 
 HEALTH_FILE = Path("health_state.json")
-DOWN_THRESHOLD = timedelta(minutes=1)
+DOWN_THRESHOLD = timedelta(hours=1)
 LOCAL_TZ = ZoneInfo("Asia/Kolkata")
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -129,7 +129,6 @@ def handle_failure(error):
     try:
         send_telegram(
             "🚨 IIIT NOTICES ENDPOINT DOWN\n\n"
-            f"🔗 {NOTICES_URL}\n"
             f"⏱ Down for {fmt_duration(down_for)} (since {fmt_local(down_since)})\n"
             f"❗ Last error: {str(error)[:200]}"
         )
@@ -152,7 +151,6 @@ def handle_recovery():
         try:
             send_telegram(
                 "✅ IIIT NOTICES ENDPOINT BACK ONLINE\n\n"
-                f"🔗 {NOTICES_URL}\n"
                 f"⏱ Total downtime: {fmt_duration(now - down_since)}\n"
                 f"🕒 Recovered at {fmt_local(now)}"
             )
