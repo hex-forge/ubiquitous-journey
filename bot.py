@@ -159,7 +159,7 @@ def handle_recovery():
 
 def main():
     try:
-    notices = get_notices()
+        notices = get_notices()
     except Exception as exc:
         print(f"Endpoint check failed: {exc}")
         handle_failure(exc)
