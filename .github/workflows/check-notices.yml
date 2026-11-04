@@ -30,17 +30,17 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python bot.py
-
-      - name: Save seen notices
+      
+      - name: Save bot state
         run: |
           git config user.name "IIIT Notice Bot"
           git config user.email "actions@github.com"
 
-          git add seen_notices.json
+          git add -A
 
           if git diff --cached --quiet; then
             echo "No changes to save."
           else
-            git commit -m "Update seen notices"
+            git commit -m "Update bot state"
             git push
           fi
